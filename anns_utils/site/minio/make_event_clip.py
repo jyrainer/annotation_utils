@@ -1,7 +1,7 @@
 import os
 import re
 import subprocess
-
+from tqdm import tqdm
 
 def get_target_folder_list(
     raw_video_root_path: str,
@@ -59,72 +59,79 @@ def save_video(target_folder_list: list, save_path: str) -> None:
     os.makedirs(save_path, exist_ok=True)  # Create the save path if it doesn't exist
 
     # Traverse through each folder in the target_folder_list
-    for folder_path in target_folder_list:
-        video_files = []
-        # Get the subfolder (UUID folder) inside each main folder
-        place = os.listdir(folder_path)[0]
-        # os.makedirs(os.path.join(save_path, place), exist_ok=True)  # Create the subfolder in save_path
-        uuid_folder = os.path.join(folder_path, place)
-
-        # Find all .ts folders within the uuid folder and sort them
-        ts_folders = [f for f in os.listdir(uuid_folder) if f.endswith(".ts")]
-        ts_folders.sort()  # Sort the .ts folders in ascending order
-
-        # For each .ts folder, find the 'part.1' file and add it to the list
-        for ts_folder in ts_folders:
-            ts_folder_path = os.path.join(uuid_folder, ts_folder)
-            ts_uuid_target_folder = get_uuid_folder(ts_folder_path)
-            ts_uuid_folder = os.path.join(ts_folder_path, ts_uuid_target_folder)
-            part_file = os.path.join(ts_uuid_folder, "part.1")
-
-            if os.path.exists(part_file):
-                video_files.append(part_file)
-
-        # Now, video_files contains the list of all .ts files to concatenate
-        # Create a text file with the list of .ts files in the format required by ffmpeg
-        concat_list_file = os.path.join(save_path, "concat_list.txt")
-        with open(concat_list_file, "w") as f:
-            for video in video_files:
-                f.write(f"file '{video}'\n")
-
-        # Define the output file path
-        folder_name = folder_path.split("/")[-1]
-        file_name = f"{folder_name}.mp4"
-        output_file = os.path.join(save_path, file_name)
-
-        # Use ffmpeg to concatenate the video files
-        command = [
-            "ffmpeg",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            concat_list_file,
-            "-c:v",
-            "libx264",  # Re-encode video with H.264 codec
-            "-c:a",
-            "aac",  # Re-encode audio with AAC codec
-            "-strict",
-            "experimental",  # Allow experimental codecs (for AAC)
-            "-preset",
-            "fast",  # Use a faster encoding preset (you can also use 'medium' or 'slow')
-            output_file,
-        ]
-
+    for folder_path in tqdm(target_folder_list):
         try:
-            subprocess.run(command, check=True)
-            print(f"Video saved successfully to {output_file}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error while concatenating videos: {e}")
+            video_files = []
+            # Get the subfolder (UUID folder) inside each main folder
+            place = os.listdir(folder_path)[0]
+            # os.makedirs(os.path.join(save_path, place), exist_ok=True)  # Create the subfolder in save_path
+            uuid_folder = os.path.join(folder_path, place)
 
+            # Find all .ts folders within the uuid folder and sort them
+            ts_folders = [f for f in os.listdir(uuid_folder) if f.endswith(".ts")]
+            ts_folders.sort()  # Sort the .ts folders in ascending order
+
+            # For each .ts folder, find the 'part.1' file and add it to the list
+            for ts_folder in ts_folders:
+                ts_folder_path = os.path.join(uuid_folder, ts_folder)
+                ts_uuid_target_folder = get_uuid_folder(ts_folder_path)
+                ts_uuid_folder = os.path.join(ts_folder_path, ts_uuid_target_folder)
+                part_file = os.path.join(ts_uuid_folder, "part.1")
+
+                if os.path.exists(part_file):
+                    video_files.append(part_file)
+
+            # Now, video_files contains the list of all .ts files to concatenate
+            # Create a text file with the list of .ts files in the format required by ffmpeg
+            concat_list_file = os.path.join(save_path, "concat_list.txt")
+            with open(concat_list_file, "w") as f:
+                for video in video_files:
+                    f.write(f"file '{video}'\n")
+
+            # Define the output file path
+            folder_name = folder_path.split("/")[-1]
+            file_name = f"{folder_name}.mp4"
+            output_file = os.path.join(save_path, file_name)
+
+            if os.path.exists(output_file):
+                print(f"File {output_file} already exists. Skipping...")
+                continue
+
+            # Use ffmpeg to concatenate the video files
+            command = [
+                "ffmpeg",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                concat_list_file,
+                "-c:v",
+                "libx264",  # Re-encode video with H.264 codec
+                "-c:a",
+                "aac",  # Re-encode audio with AAC codec
+                "-strict",
+                "experimental",  # Allow experimental codecs (for AAC)
+                "-preset",
+                "fast",  # Use a faster encoding preset (you can also use 'medium' or 'slow')
+                output_file,
+            ]
+
+            try:
+                subprocess.run(command, check=True)
+                print(f"Video saved successfully to {output_file}")
+            except subprocess.CalledProcessError as e:
+                print(f"Error while concatenating videos: {e}")
+        except Exception as e:
+            print(f"Error processing folder {folder_path}: {e}")
+            continue
 
 if __name__ == "__main__":
     raw_video_root_path = "/media/gpuadmin/One Touch/ktt_14th_clip"
     start_time_stemp = "1747700439211"  # 1747700439.211
     end_time_stemp = "1747817452321"  # 1747817452.321
     # end_time_stemp = "1747701274521" # 1747817452.321 TEST
-    max_video_duration = 15
+    max_video_duration = 60
     result_path = "/media/gpuadmin/One Touch/ktt_14th_clip_parsed"
 
     # 1. get video path

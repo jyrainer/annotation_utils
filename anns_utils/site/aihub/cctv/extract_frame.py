@@ -21,7 +21,7 @@ def convert_time_to_seconds(time_str: str) -> float:
 
 def get_event_frame(
     video_path: str,
-    before_margin: int = 8,
+    before_margin: int = 12,
     after_margin: int = 4,
 ) -> list[int, int]:
     """_summary_
@@ -46,9 +46,12 @@ def get_event_frame(
     event = str(root.find("object/action/actionname").text)
     starttime_seconds = convert_time_to_seconds(starttime)
     duration_seconds = convert_time_to_seconds(duration)
-
-    start_frame = int(starttime_seconds * FPS)
-    end_frame = int((starttime_seconds + duration_seconds) * FPS)
+    
+    new_starttime = starttime_seconds + duration_seconds
+    duration_seconds = 2
+    
+    start_frame = int(new_starttime * FPS)
+    end_frame = int((new_starttime + duration_seconds) * FPS)
 
     before_frame = int(max(0, start_frame - before_margin * FPS))
     after_frame = int(min(frames - 1, end_frame + after_margin * FPS))
@@ -88,16 +91,26 @@ def save_video_clips(video_path, output_dir):
     event_frame, event_name = get_event_frame(video_path)
 
     ### 하드코딩
-    if int(video_name.split("_")[0].split("-")[0]) >= 151:
+    TARGET_VIDEO = ["147-1_cam01_trespass01_place03_night_spring", "147-1_cam02_trespass01_place03_night_summer", "147-6_cam02_trespass01_place03_night_spring", "147-6_cam02_trespass01_place03_night_summer",
+                    "151-1_cam01_trespass01_place03_night_spring", "151-1_cam01_trespass01_place03_night_summer", "151-1_cam02_trespass01_place03_night_summer", "151-2_cam01_trespass01_place03_night_spring",
+                    "151-2_cam01_trespass01_place03_night_summer", "151-2_cam02_trespass01_place03_night_spring", "151-2_cam02_trespass01_place03_night_summer", "151-3_cam01_trespass01_place03_night_spring",
+                    "151-3_cam01_trespass01_place03_night_summer", "151-3_cam02_trespass01_place03_night_spring", "151-3_cam02_trespass01_place03_night_summer", "151-4_cam01_trespass01_place03_night_spring",
+                    "151-4_cam01_trespass01_place03_night_summer", "151-4_cam02_trespass01_place03_night_spring", "151-5_cam01_trespass01_place03_night_summer", "151-5_cam02_trespass01_place03_night_summer",
+                    "151-6_cam01_trespass01_place03_night_spring", "151-6_cam01_trespass01_place03_night_summer", "151-6_cam02_trespass01_place03_night_summer"]
+    
+    if video_name in TARGET_VIDEO:
         pass
     else:
-        print(f"Video: {video_name}")
         return
+    
     if event_name == "climbwall":
         pass
     else:
         print(f"Event: {event_name}, Video: {video_name}")
         return
+    
+    
+    
     # 저장할 비디오 형식 설정
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     output_path = os.path.join(output_dir, f"{video_name}_clip.mp4")

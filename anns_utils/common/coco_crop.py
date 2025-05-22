@@ -34,12 +34,21 @@ def crop(image_dir, coco_json_path, output_path):
                 x, y, width, height = map(int, ann["bbox"])
 
                 cropped_image = np_image[y : y + height, x : x + width]
-                cv2.imwrite(
-                    f"{output_path}/{cate_name}/{image_name}_{image_instance_num}.jpg", cropped_image
-                )
+                try:
+                    cv2.imwrite(
+                        f"{output_path}/{cate_name}/{image_name}_{image_instance_num}.jpg", cropped_image
+                    )
+                except:
+                    print(f"Error: {image_name}_{image_instance_num}.jpg")
 
 
 def count_anns_imgs(coco_json_path):
     with open(coco_json_path) as file:
         coco_json = json.load(file)
         print("anns 수:", len(coco_json["annotations"]), "imgs 수:", len(coco_json["images"]))
+
+if __name__ == "__main__" :
+    image_path = "/mnt/nas_192/datasets/jyp/datasets/raw_coco2017/train2017"
+    json_path = "/mnt/nas_192/datasets/jyp/datasets/raw_coco2017/annotations/instance_person.json"
+    output_path = "/mnt/nas_192/datasets/jyp/datasets/raw_coco2017/person_cropped"
+    crop(image_path, json_path, output_path)
